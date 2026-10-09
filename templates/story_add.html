@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>添加故事</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 头部样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 表单卡片 */
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 25px;
+        }
+
+        .form-card h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-card h2 .icon {
+            font-size: 24px;
+        }
+
+        /* 表单行 */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        /* 表单组 */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-left: 3px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #aaa;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        /* 字数限制输入框 */
+        .word-limit-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .word-limit-input input {
+            flex: 1;
+        }
+
+        .word-limit-input .unit {
+            font-size: 14px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        /* 关键字标签输入 */
+        .tags-input-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            min-height: 50px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .tags-input-container:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .tag-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .tag-item .tag-remove {
+            cursor: pointer;
+            opacity: 0.8;
+            font-size: 16px;
+        }
+
+        .tag-item .tag-remove:hover {
+            opacity: 1;
+        }
+
+        .tags-input {
+            border: none !important;
+            padding: 6px 0 !important;
+            flex: 1;
+            min-width: 120px;
+            box-shadow: none !important;
+        }
+
+        .tags-input:focus {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        /* 生成按钮 */
+        .btn-generate {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-generate:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-generate .icon {
+            font-size: 20px;
+        }
+
+        /* 故事内容输出区域 */
+        .output-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .output-header h2 {
+            font-size: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .output-header h2 .icon {
+            font-size: 24px;
+        }
+
+        .word-count {
+            font-size: 14px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+
+        .story-output {
+            width: 100%;
+            min-height: 400px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #444;
+            resize: vertical;
+            font-family: inherit;
+            background: #fafafa;
+        }
+
+        .story-output:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        /* 操作按钮组 */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border-color: #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9ff;
+            transform: translateY(-2px);
+        }
+
+        .btn-reset {
+            background: white;
+            color: #999;
+            border-color: #ddd;
+        }
+
+        .btn-reset:hover {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        /* 进度指示器 */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* 提示信息 */
+        .info-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box .icon {
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .info-box p {
+            font-size: 14px;
+            color: #1565c0;
+            line-height: 1.6;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>✏️ 添加新故事</h1>
+            <a href="/story-list" class="btn-back">
+                ← 返回列表
+            </a>
+        </div>
+
+        <!-- 提示信息 -->
+        <div class="info-box">
+            <span class="icon">💡</span>
+            <p>填写故事的基本信息和要求，然后点击"生成故事"按钮，系统将为您自动生成一篇精彩的故事。</p>
+        </div>
+
+        <!-- 故事基本信息 -->
+        <div class="form-card">
+            <h2>
+                <span class="icon">📝</span>
+                故事基本信息
+            </h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>故事标题 <span class="required">*</span></label>
+                    <input type="text" placeholder="请输入故事标题" v-model.trim="form.title">
+                    <span class="hint">一个好的标题能吸引读者的注意力</span>
+                </div>
+
+                <div class="form-group">
+                    <label>故事分类 <span class="required">*</span></label>
+                    <select v-model="form.type">
+                        <option value="">请选择故事分类</option>
+                        <template v-for="item in storyTypeList">
+                            <option :value="item.id">${item.name}</option>
+                        </template>
+                    </select>
+                    <span class="hint">选择一个合适的故事类型</span>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>故事字数限制</label>
+                    <div class="word-limit-input">
+                        <input type="number" placeholder="请输入字数" v-model.number="form.font_count" min="100" max="50000" step="100">
+                        <span class="unit">字</span>
+                    </div>
+                    <span class="hint">建议范围：500-10000字</span>
+                </div>
+
+            </div>
+
+            <div class="form-row full">
+                <div class="form-group">
+                    <label>关键字</label>
+                    <div class="tags-input-container">
+                        <span class="tag-item" v-for="item, index in form.keywords" :key="item">
+                            ${item}
+                            <span class="tag-remove" @click="form.keywords.splice(index, 1)">×</span>
+                        </span>
+                        <input type="text" class="tags-input" @keydown.enter="addKeywords"
+                            placeholder="输入关键字后按回车添加...">
+                    </div>
+                    <span class="hint">添加关键字可以帮助生成更符合您期望的故事</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 故事要求 -->
+        <div class="form-card">
+            <h2>
+                <span class="icon">🎯</span>
+                故事要求
+            </h2>
+
+            <div class="form-row full">
+                <div class="form-group">
+                    <label>故事背景设定</label>
+                    <textarea rows="3" placeholder="描述故事发生的时间、地点、世界观等背景信息..." v-model="form.bg_settings"></textarea>
+                    <span class="hint">详细的背景设定能让故事更加真实可信</span>
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-group">
+                    <label>主要角色描述</label>
+                    <textarea rows="3" placeholder="描述故事中的主要角色，包括姓名、性格、外貌特征等..." v-model="form.role_desc"></textarea>
+                    <span class="hint">清晰的角色描述有助于塑造生动的人物形象</span>
+                </div>
+            </div>
+
+            <div class="form-row full">
+                <div class="form-group">
+                    <label>故事梗概 / 情节要求</label>
+                    <textarea rows="4" placeholder="简要描述您期望的故事走向、关键情节、主题等..." v-model="form.story_detail"></textarea>
+                    <span class="hint">您希望故事包含哪些元素或达到什么效果</span>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 10px;">
+                <button type="button" class="btn-generate" @click="generatorStory">
+                    <span class="icon">✨</span>
+                    生成故事
+                </button>
+            </div>
+        </div>
+
+        <!-- 故事输出区域 -->
+        <div class="output-section">
+            <div class="output-header">
+                <h2>
+                    <span class="icon">📖</span>
+                    生成的故事内容
+                </h2>
+                <span class="word-count">字数：${count} / ${form.font_count}</span>
+            </div>
+
+            <textarea class="story-output" ref="story" v-model="form.content" placeholder="故事内容将在这里显示...
+
+您可以：
+• 点击上方的「生成故事」按钮自动生成
+• 也可以在此处手动输入或编辑故事内容"></textarea>
+
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+                <button type="button" class="btn btn-primary">
+                    <span>💾</span>
+                    保存故事
+                </button>
+                <button type="button" class="btn btn-reset">
+                    <span>🔄</span>
+                    重新生成
+                </button>
+                <a href="/story-list" class="btn btn-reset">
+                    <span>↩️</span>
+                    返回列表
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+
+<link rel="stylesheet" href="/static/layer/theme/default/layer.css">
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/layer/layer.js"></script>
+<script src="/static/js/axios.min.js"></script>
+<script src="/static/js/vue.global.js"></script>
+<script src="/static/js/API.js"></script>
+
+<script>
+
+Vue.createApp({
+    data() {
+        return {
+            form: {
+                title: '',
+                type: '', 
+                font_count: 1000,
+                keywords: [], 
+                bg_settings: "" , // 背景设定 
+                role_desc:  "", // 角色描述 
+                story_detail: "", // 故事情节
+                content: "" , // 存储故事的内容
+            },
+            storyTypeList: [],  // 存储所有的故事类型 
+        }
+    },
+    delimiters: ["${", "}"],
+    created(){
+        this.queryStoryTypeList();
+    },
+    computed:{
+        count(){
+            return this.form.content.length ;
+        }
+    },
+    methods: {
+        addKeywords(event) {
+            this.form.keywords.push(event.target.value);
+            event.target.value = "" ;
+        },
+        queryStoryTypeList(){
+            API.findStoryTypeList().then(response => {
+                this.storyTypeList = response.data ; 
+            })
+        },
+        generatorStory(event) {
+            if (this.form.title === "") {
+                layer.msg("故事标题不允许为空");
+                return ;
+            }
+            if (this.form.type === "") {
+                layer.msg("请选择故事类型");
+                return ;
+            }
+            const loading = layer.load(2)
+            // 将 页面 录入的数据 传递为 django 
+            API.generatorStory(this.form).then(async response => {
+                // 获取 流式响应 对应的 reader 对象(负责读取数据)
+                reader = response.body.getReader(); 
+                // 创建一个 文本解码器对象 
+                let decoder = new TextDecoder();
+                // 模拟 不断的从 服务器 接收数据
+                while(true) {
+                    layer.close(loading) ;
+                    // 会产生阻塞效果 、需要等待 
+                    let {done, value} = await reader.read() ;
+                    // 如果 数据返回完成 、则 退出循环
+                    if (done) break ;
+                    // 对 数据进行解码 `
+                    let data = decoder.decode(value, {stream: true})
+                    data = data.replace("data: ", "").replace("\n\n", "");
+                    try{
+                        this.form.content +=  data ;
+                        // 获取 标签 
+                        let tag = this.$refs.story
+                        // 等待 响应式数据 影响 DOM 后执行的代码 
+                        this.$nextTick(()=> {
+                            // 获取滚动高 
+                            let height = tag.scrollHeight ;
+                            // 设置 滚动条的位置
+                            tag.scrollTop = height ;
+                        })
+                    }catch(e){
+                        console.log(e);
+                    }
+                }
+            })
+        }
+    }
+
+}).mount(".container")
+
+
+</script>
+
+
+</html>

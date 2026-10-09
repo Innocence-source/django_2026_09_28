@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故事类型管理</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', 'Segoe UI', sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            padding: 50px 40px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 扫描线背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(transparent 50%, rgba(0, 255, 255, 0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* 网格背景 */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            padding: 0 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00ffff;
+            font-size: 3.5rem;
+            margin-bottom: 50px;
+            text-shadow:
+                0 0 10px #00ffff,
+                0 0 20px #00ffff,
+                0 0 40px #00ffff,
+                0 0 80px #0088ff;
+            letter-spacing: 8px;
+            font-weight: 900;
+            text-transform: uppercase;
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff; }
+            20% { text-shadow: -2px 0 #ff00ff, 2px 0 #00ffff; }
+            40% { text-shadow: 2px 0 #ff00ff, -2px 0 #00ffff; }
+            60% { text-shadow: -1px 0 #ff00ff, 1px 0 #00ffff; }
+            80% { text-shadow: 1px 0 #ff00ff, -1px 0 #00ffff; }
+        }
+
+        /* 统计卡片区域 */
+        .stats-container {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(255, 0, 255, 0.1) 100%);
+            border: 2px solid #00ffff;
+            border-radius: 0;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow:
+                0 0 20px #00ffff,
+                0 0 40px rgba(0, 255, 255, 0.3),
+                inset 0 0 20px rgba(0, 255, 255, 0.1);
+            border-color: #ff00ff;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 0 10px #00ffff);
+        }
+
+        .stat-card .stat-number {
+            font-size: 2.8rem;
+            font-weight: 900;
+            margin-bottom: 8px;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.75rem;
+            color: #00ffff;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .stat-card.total {
+            border-color: #00ffff;
+        }
+
+        .stat-card.total .stat-number {
+            color: #00ffff;
+        }
+
+        .stat-card.enabled {
+            border-color: #00ff88;
+        }
+
+        .stat-card.enabled .stat-number {
+            color: #00ff88;
+        }
+
+        .stat-card.disabled {
+            border-color: #ff0044;
+        }
+
+        .stat-card.disabled .stat-number {
+            color: #ff0044;
+        }
+
+        /* 添加类型区域 */
+        .add-type-section {
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.95) 0%, rgba(20, 10, 30, 0.95) 100%);
+            border: 2px solid #ff00ff;
+            border-radius: 0;
+            padding: 30px;
+            position: relative;
+            clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+        }
+
+        .add-type-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff);
+            animation: borderGlow 2s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .add-type-section h2 {
+            font-size: 1.4rem;
+            color: #ff00ff;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 0 10px #ff00ff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .add-type-section h2::before {
+            content: '⚡';
+            filter: drop-shadow(0 0 10px #ffff00);
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: #00ffff;
+            margin-bottom: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #333;
+            border-radius: 0;
+            font-size: 0.9rem;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.3s ease;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ffff;
+            letter-spacing: 1px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00ffff;
+            box-shadow:
+                0 0 10px #00ffff,
+                0 0 20px rgba(0, 255, 255, 0.3),
+                inset 0 0 10px rgba(0, 255, 255, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #555;
+            font-style: italic;
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #ff00ff 0%, #8800ff 100%);
+            color: white;
+            border: 2px solid #ff00ff;
+            border-radius: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-family: 'Orbitron', monospace;
+            position: relative;
+            overflow: hidden;
+            clip-path: polygon(15px 0, 100% 0, calc(100% - 15px) 100%, 0 100%);
+        }
+
+        .btn-add::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 0 20px #ff00ff,
+                0 0 40px rgba(255, 0, 255, 0.4);
+            text-shadow: 0 0 10px #fff;
+        }
+
+        .btn-add:hover::before {
+            left: 100%;
+        }
+
+        .btn-add:active {
+            transform: translateY(0);
+        }
+
+        /* 类型列表区域 */
+        .type-list-section {
+            margin: 60px 0 0;
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.95) 0%, rgba(20, 10, 30, 0.95) 100%);
+            border: 2px solid #00ffff;
+            border-radius: 0;
+            padding: 20px;
+            position: relative;
+            clip-path: polygon(0 15px, 15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+        }
+
+        .type-list-section h2 {
+            font-size: 1.4rem;
+            color: #00ffff;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 0 10px #00ffff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .type-list-section h2::before {
+            content: '🔮';
+            filter: drop-shadow(0 0 10px #ff00ff);
+        }
+
+        .type-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 12px;
+            text-align: center;
+        }
+
+        .type-table thead th {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(255, 0, 255, 0.2) 100%);
+            color: #00ffff;
+            padding: 16px 20px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 2px solid #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .type-table thead th:first-child {
+            clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .type-table thead th:last-child {
+            clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+        }
+
+        .type-table tr {
+            background: rgba(0, 0, 0, 0.6);
+            transition: all 0.3s ease;
+            border: 1px solid #222;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .type-table tr::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: #ff00ff;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .type-table tr:hover {
+            background: rgba(0, 255, 255, 0.05);
+            box-shadow:
+                0 0 20px rgba(0, 255, 255, 0.2),
+                inset 0 0 30px rgba(0, 255, 255, 0.05);
+            transform: translateX(10px);
+            border-color: #00ffff;
+        }
+
+        .type-table tr:hover::before {
+            opacity: 1;
+        }
+
+        .type-table td {
+            padding: 18px 20px;
+            vertical-align: middle;
+        }
+
+        .type-table tbody td:first-child {
+            clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .type-table tbody td:last-child {
+            clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+        }
+
+        .type-id {
+            font-family: 'Orbitron', monospace;
+            font-weight: 800;
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.15);
+            padding: 6px 12px;
+            border: 1px solid #00ffff;
+            font-size: 0.8rem;
+            text-shadow: 0 0 5px #00ffff;
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+        }
+
+        .type-name {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.05rem;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        /* 编辑输入框美化 */
+        .edit-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #ff00ff;
+            border-radius: 0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #ff00ff;
+            background: rgba(255, 0, 255, 0.1);
+            font-family: 'Orbitron', monospace;
+            box-shadow:
+                0 0 10px #ff00ff,
+                0 0 20px rgba(255, 0, 255, 0.3),
+                inset 0 0 10px rgba(255, 0, 255, 0.1);
+            transition: all 0.3s ease;
+            animation: editPulse 1s ease-in-out infinite;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+        }
+
+        .edit-input:focus {
+            outline: none;
+            border-color: #00ffff;
+            color: #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow:
+                0 0 15px #00ffff,
+                0 0 30px rgba(0, 255, 255, 0.4),
+                inset 0 0 15px rgba(0, 255, 255, 0.1);
+            animation: none;
+        }
+
+        .edit-input::placeholder {
+            color: #666;
+            font-style: italic;
+        }
+
+        @keyframes editPulse {
+            0%, 100% {
+                box-shadow:
+                    0 0 10px #ff00ff,
+                    0 0 20px rgba(255, 0, 255, 0.3),
+                    inset 0 0 10px rgba(255, 0, 255, 0.1);
+            }
+            50% {
+                box-shadow:
+                    0 0 20px #ff00ff,
+                    0 0 40px rgba(255, 0, 255, 0.4),
+                    inset 0 0 20px rgba(255, 0, 255, 0.2);
+            }
+        }
+
+        .edit-hint {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            font-size: 0.6rem;
+            color: #00ffff;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .type-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 0;
+            font-weight: 800;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .type-status.enabled {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.3) 0%, rgba(0, 200, 100, 0.3) 100%);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .type-status.enabled::before {
+            content: '◆';
+            font-weight: bold;
+            filter: drop-shadow(0 0 5px #00ff88);
+        }
+
+        .type-status.enabled:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.5) 0%, rgba(0, 200, 100, 0.5) 100%);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .type-status.disabled {
+            background: linear-gradient(135deg, rgba(255, 0, 68, 0.3) 0%, rgba(200, 0, 50, 0.3) 100%);
+            color: #ff0044;
+            border: 1px solid #ff0044;
+            text-shadow: 0 0 10px #ff0044;
+        }
+
+        .type-status.disabled::before {
+            content: '◇';
+            filter: drop-shadow(0 0 5px #ff0044);
+        }
+
+        .type-status.disabled:hover {
+            background: linear-gradient(135deg, rgba(255, 0, 68, 0.5) 0%, rgba(200, 0, 50, 0.5) 100%);
+            box-shadow: 0 0 15px rgba(255, 0, 68, 0.4);
+        }
+
+        .type-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: 2px solid;
+            border-radius: 0;
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-family: 'Orbitron', monospace;
+            position: relative;
+            overflow: hidden;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+            white-space: nowrap;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.4s ease;
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #0088ff 0%, #0044ff 100%);
+            color: #fff;
+            border-color: #00ffff;
+        }
+
+        .btn-edit:hover {
+            box-shadow:
+                0 0 15px #00ffff,
+                0 0 30px rgba(0, 255, 255, 0.4);
+            text-shadow: 0 0 10px #fff;
+            transform: translateY(-3px);
+        }
+
+        .btn-edit:hover::before {
+            left: 100%;
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #ff0044 0%, #cc0033 100%);
+            color: #fff;
+            border-color: #ff00ff;
+        }
+
+        .btn-delete:hover {
+            box-shadow:
+                0 0 15px #ff00ff,
+                0 0 30px rgba(255, 0, 255, 0.4);
+            text-shadow: 0 0 10px #fff;
+            transform: translateY(-3px);
+        }
+
+        .btn-delete:hover::before {
+            left: 100%;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 100px 20px;
+            color: #555;
+        }
+
+        .empty-state .empty-icon {
+            font-size: 6rem;
+            margin-bottom: 30px;
+            opacity: 0.5;
+            filter: drop-shadow(0 0 20px #ff00ff);
+        }
+
+        .empty-state p {
+            font-size: 1.3rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* 主布局 - 左右分栏 */
+        .main-layout {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .left-panel {
+            flex: 0 0 340px;
+            position: sticky;
+            top: 30px;
+        }
+
+        .right-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 左侧面板标题 */
+        .left-panel h1 {
+            font-size: 1.6rem;
+            margin-bottom: 22px;
+            text-align: left;
+            letter-spacing: 2px;
+        }
+
+        /* 统计卡片 - 纵向排列 */
+        .stats-container {
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+        }
+
+        .stat-card .stat-number {
+            font-size: 2.5rem;
+        }
+
+        /* 模态框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(10, 10, 20, 0.98) 0%, rgba(20, 10, 30, 0.98) 100%);
+            border: 2px solid #00ffff;
+            border-radius: 0;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ffff, #ff00ff, #00ffff);
+            animation: borderGlow 2s linear infinite;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #333;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #ff0044;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 5px;
+        }
+
+        .modal-close:hover {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .modal-footer .btn {
+            padding: 12px 24px;
+            font-size: 0.8rem;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            color: #000;
+            border-color: #00ff88;
+        }
+
+        .btn-save:hover {
+            box-shadow:
+                0 0 15px #00ff88,
+                0 0 30px rgba(0, 255, 136, 0.4);
+            text-shadow: 0 0 10px #000;
+        }
+
+        .btn-save:hover::before {
+            left: 100%;
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+            color: #fff;
+            border-color: #888;
+        }
+
+        .btn-cancel:hover {
+            box-shadow:
+                0 0 15px #888,
+                0 0 30px rgba(136, 136, 136, 0.4);
+            text-shadow: 0 0 10px #fff;
+        }
+
+        .btn-cancel:hover::before {
+            left: 100%;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .left-panel {
+                flex: 0 0 320px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                flex: none;
+                width: 100%;
+                position: static;
+            }
+
+            .left-panel h1 {
+                text-align: center;
+                font-size: 2rem;
+            }
+
+            .stats-container {
+                flex-direction: row;
+            }
+
+            .stat-card {
+                clip-path: none;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+                letter-spacing: 4px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 15px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                letter-spacing: 2px;
+            }
+
+            .stats-container {
+                flex-direction: column;
+            }
+
+            .type-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .type-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn {
+                justify-content: center;
+                clip-path: none;
+            }
+
+            .add-type-section,
+            .type-list-section {
+                clip-path: none;
+            }
+
+            .type-id,
+            .type-status {
+                clip-path: none;
+            }
+
+            .edit-input {
+                clip-path: none;
+            }
+
+            .modal-content {
+                clip-path: none;
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-layout">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <h1>📚 故事类型管理</h1>
+                <!-- 添加类型 -->
+                <div class="add-type-section">
+                    <h2>添加新类型</h2>
+                    <div class="form-group">
+                        <label for="type-name">类型名称</label>
+                        <input type="text" id="type-name" v-model.trim="typeName" placeholder="请输入类型名称..." @keydown.enter="addTypeHandler">
+                    </div>
+                    <button type="submit" class="btn-add" @click="addTypeHandler">
+                        <span>⚡</span> 添加类型
+                    </button>
+                </div>
+                <!-- 统计卡片 -->
+                <div class="stats-container">
+                    <div class="stat-card total">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-number">${ typeList.length }</div>
+                        <div class="stat-label">全部类型</div>
+                    </div>
+                    <div class="stat-card enabled">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-number">${enabledCount}</div>
+                        <div class="stat-label">已启用</div>
+                    </div>
+                    <div class="stat-card disabled">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-number">${disabledCount}</div>
+                        <div class="stat-label">已禁用</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧面板 -->
+            <div class="right-panel">
+                <!-- 类型列表 -->
+                <div class="type-list-section">
+                    <h2>类型列表</h2>
+                    <!-- 空状态 -->
+                    <div v-if="typeList.length === 0" class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>暂无故事类型数据</p>
+                    </div>
+                    <!-- 数据表格 -->
+                    <table v-else class="type-table">
+                        <thead>
+                            <tr>
+                                <th>类型 ID</th>
+                                <th>类型名称</th>
+                                <th>启用状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, index) in typeList" :key="item.id">
+                                <td><span class="type-id">#${ item.id }</span></td>
+                                <td class="type-name">
+                                    <template v-if="editIndex === index">
+                                        <div class="edit-input-wrapper">
+                                            <input type="text" class="edit-input"
+                                                @keydown.esc="editIndex = -1"
+                                                @keydown.enter="saveEditHandler(item.id, $event.target.value, item.state)"
+                                                :value="item.name"
+                                                placeholder="输入新类型名称...">
+                                            <span class="edit-hint">按 Enter 确认，Esc 取消</span>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        ${item.name}
+                                    </template>
+                                </td>
+                                <td>
+                                    <span class="type-status" :class="item.enabled ? 'enabled' : 'disabled'"
+                                        @click="toggleStateHandler(item.id, index)">
+                                        ${ item.enabled ? '已启用' : '已禁用' }
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="type-actions">
+                                        <button class="btn btn-edit" @click="editIndex = index">✏️ 修改</button>
+                                        <button class="btn btn-delete" @click="deleteHandler(item.id, index)">🗑️ 删除</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑模态框 -->
+    <div class="modal-overlay" :class="{active: showModal}" @click.self="showModal = false">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📝 编辑类型</h3>
+                <button class="modal-close" @click="showModal = false">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-type-name">类型名称</label>
+                    <input type="text" id="edit-type-name" v-model.trim="editTypeName" placeholder="请输入类型名称...">
+                </div>
+                <div class="form-group">
+                    <label for="edit-type-state">启用状态</label>
+                    <select id="edit-type-state" v-model="editTypeState">
+                        <option :value="1">启用</option>
+                        <option :value="0">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" @click="showModal = false">取消</button>
+                <button class="btn btn-save" @click="saveModalHandler">保存</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+<link rel="stylesheet" href="/static/layer/theme/default/layer.css">
+<script src="/static/js/jquery-3.7.1.min.js"></script>
+<script src="/static/layer/layer.js"></script>
+<script src="/static/js/axios.min.js"></script>
+<script src="/static/js/vue.global.js"></script>
+<script src="/static/js/API.js"></script>
+
+<script>
+
+Vue.createApp({
+    data() {
+        return {
+            typeName: "",          // 新增类型名
+            typeList: [],          // 类型列表数据
+            editIndex: -1,         // 行内编辑索引
+            showModal: false,      // 模态框显示状态
+            editTypeId: null,      // 编辑中的类型ID
+            editTypeName: "",      // 编辑中的类型名
+            editTypeState: 1,      // 编辑中的类型状态
+        }
+    },
+    delimiters: ["${",  "}"],  // 设置插值的前缀和后缀，解决和django冲突问题
+    methods: {
+        // 查询所有类型
+        queryTypeList() {
+            API.findStoryTypeList().then(response => {
+                this.typeList = response.data;
+            });
+        },
+
+        // 添加类型
+        addTypeHandler() {
+            if (this.typeName === "") {
+                layer.msg("类型名不允许为空");
+                return;
+            }
+            API.addStoryType(this.typeName).then(response => {
+                this.typeList.unshift(response.data);
+                this.typeName = "";
+                layer.msg("添加成功");
+            }).catch(error => {
+                layer.msg(error.response.data.message);
+            });
+        },
+
+        // 删除类型
+        deleteHandler(typeId, index) {
+            layer.confirm("您确定要删除该类型吗?", (layerIndex) => {
+                API.deleteStoryType(typeId).then(response => {
+                    this.typeList.splice(index, 1);
+                    layer.close(layerIndex);
+                    layer.msg("删除成功");
+                });
+            });
+        },
+
+        // 切换启用状态
+        toggleStateHandler(typeId, index) {
+            API.toggleStoryTypeState(typeId).then(response => {
+                this.typeList[index].state = response.data.state;
+                layer.msg(response.data.state ? "已启用" : "已禁用");
+            });
+        },
+
+        // 行内编辑保存
+        saveEditHandler(typeId, newName, currentState) {
+            if (newName === "") {
+                layer.msg("类型名不允许为空");
+                return;
+            }
+            API.updateStoryType({id: typeId, name: newName, state: currentState}).then(response => {
+                let type = this.typeList.find(t => t.id === typeId);
+                type.name = newName;
+                this.editIndex = -1;
+                layer.msg("修改成功");
+            }).catch(error => {
+                layer.msg(error.response.data.message);
+            });
+        },
+
+        // 打开模态框编辑
+        openEditModal(item, index) {
+            this.editTypeId = item.id;
+            this.editTypeName = item.name;
+            this.editTypeState = item.state;
+            this.showModal = true;
+        },
+
+        // 模态框保存
+        saveModalHandler() {
+            if (this.editTypeName === "") {
+                layer.msg("类型名不允许为空");
+                return;
+            }
+            API.updateStoryType({
+                id: this.editTypeId,
+                name: this.editTypeName,
+                state: this.editTypeState
+            }).then(response => {
+                let type = this.typeList.find(t => t.id === this.editTypeId);
+                type.name = this.editTypeName;
+                type.state = this.editTypeState;
+                this.showModal = false;
+                layer.msg("修改成功");
+            }).catch(error => {
+                layer.msg(error.response.data.message);
+            });
+        }
+    },
+    created() {
+        this.queryTypeList();
+    },
+    computed: {
+        // 已启用数量
+        enabledCount() {
+            return this.typeList.filter(t => t.enabled).length;
+        },
+        // 已禁用数量
+        disabledCount() {
+            return this.typeList.filter(t => !t.enabled).length;
+        }
+    }
+}).mount(".container");
+
+</script>
+
+</html>

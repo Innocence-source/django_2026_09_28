@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>故事管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 头部样式 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-add .icon {
+            font-size: 20px;
+        }
+
+        /* 统计卡片 */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* 搜索和筛选栏 */
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .filter-select {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* 故事列表表格 */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* 故事标题样式 */
+        .story-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .story-id {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 类型标签 */
+        .type-tag {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .type-fantasy {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .type-romance {
+            background: #fce4ec;
+            color: #c62828;
+        }
+
+        .type-scifi {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .type-mystery {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .type-horror {
+            background: #fbe9e7;
+            color: #bf360c;
+        }
+
+        .type-adventure {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        /* 故事内容截断 */
+        .story-content {
+            max-width: 400px;
+            line-height: 1.6;
+            color: #555;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 操作按钮 */
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-view {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .btn-view:hover {
+            background: #bbdefb;
+        }
+
+        .btn-edit {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .btn-edit:hover {
+            background: #ffe0b2;
+        }
+
+        .btn-delete {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .btn-delete:hover {
+            background: #ffcdd2;
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 25px;
+            background: white;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .page-btn {
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            color: #666;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .page-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .page-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            margin: 0 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .empty-state p {
+            margin-bottom: 25px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .filter-bar {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>📚 故事管理</h1>
+            <a href="/story-add" class="btn-add">
+                <span class="icon">✏️</span>
+                添加故事
+            </a>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="number">128</div>
+                <div class="label">总故事数</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">45</div>
+                <div class="label">本月新增</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">12</div>
+                <div class="label">故事类型</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">89%</div>
+                <div class="label">完成率</div>
+            </div>
+        </div>
+
+        <!-- 搜索和筛选 -->
+        <div class="filter-bar">
+            <div class="search-box">
+                <input type="text" placeholder="搜索故事标题或内容...">
+            </div>
+            <select class="filter-select">
+                <option value="">全部类型</option>
+                <option value="fantasy">奇幻</option>
+                <option value="romance">言情</option>
+                <option value="scifi">科幻</option>
+                <option value="mystery">悬疑</option>
+                <option value="horror">恐怖</option>
+                <option value="adventure">冒险</option>
+            </select>
+            <select class="filter-select">
+                <option value="">排序方式</option>
+                <option value="newest">最新创建</option>
+                <option value="oldest">最早创建</option>
+                <option value="title">按标题</option>
+            </select>
+        </div>
+
+        <!-- 故事列表 -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>故事标题</th>
+                        <th>类型</th>
+                        <th>故事内容</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="story-title">星际迷航：新的开始</div>
+                            <div class="story-id">#STORY-001</div>
+                        </td>
+                        <td><span class="type-tag type-scifi">科幻</span></td>
+                        <td>
+                            <div class="story-content">
+                                在遥远的未来，人类已经掌握了星际旅行的技术。主角李明是一名年轻的星际飞行员，他被选中参加一项探索未知星系的神秘任务。这次任务可能会改变人类对宇宙的认知...
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="#" class="btn btn-view">查看</a>
+                                <a href="#" class="btn btn-edit">编辑</a>
+                                <a href="#" class="btn btn-delete">删除</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="story-title">魔法森林的秘密</div>
+                            <div class="story-id">#STORY-002</div>
+                        </td>
+                        <td><span class="type-tag type-fantasy">奇幻</span></td>
+                        <td>
+                            <div class="story-content">
+                                艾丽丝是一个普通的小女孩，直到有一天她发现了一本古老的魔法书。这本书将她带入了一个充满神奇生物和魔法的森林。在那里，她必须找到回家的路，同时揭开森林守护者隐藏了千年的秘密...
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="#" class="btn btn-view">查看</a>
+                                <a href="#" class="btn btn-edit">编辑</a>
+                                <a href="#" class="btn btn-delete">删除</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="story-title">午夜凶铃</div>
+                            <div class="story-id">#STORY-003</div>
+                        </td>
+                        <td><span class="type-tag type-horror">恐怖</span></td>
+                        <td>
+                            <div class="story-content">
+                                每当午夜十二点的钟声响起，废弃医院的电话就会响起。没人知道电话那头是谁，但每个接起电话的人都会在七天后离奇死亡。记者张伟决定调查这个诡异的现象，却发现自己陷入了一个无法逃脱的诅咒...
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="#" class="btn btn-view">查看</a>
+                                <a href="#" class="btn btn-edit">编辑</a>
+                                <a href="#" class="btn btn-delete">删除</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="story-title">江南烟雨情</div>
+                            <div class="story-id">#STORY-004</div>
+                        </td>
+                        <td><span class="type-tag type-romance">言情</span></td>
+                        <td>
+                            <div class="story-content">
+                                在民国时期的江南水乡，富家千金林婉儿与穷书生陈世美相遇。两人一见钟情，却因门第之见遭到家族反对。在动荡的时局下，他们的爱情将何去何从...
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="#" class="btn btn-view">查看</a>
+                                <a href="#" class="btn btn-edit">编辑</a>
+                                <a href="#" class="btn btn-delete">删除</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="story-title">密室逃脱</div>
+                            <div class="story-id">#STORY-005</div>
+                        </td>
+                        <td><span class="type-tag type-mystery">悬疑</span></td>
+                        <td>
+                            <div class="story-content">
+                                十个陌生人收到神秘邀请函，来到一座孤岛上的豪宅。他们被困在这里，必须解开一系列谜题才能逃离。然而，每过一天，就有一个人神秘消失。是有人在背后操纵，还是超自然力量在作祟...
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="#" class="btn btn-view">查看</a>
+                                <a href="#" class="btn btn-edit">编辑</a>
+                                <a href="#" class="btn btn-delete">删除</a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 分页 -->
+            <div class="pagination">
+                <button class="page-btn disabled">上一页</button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+                <button class="page-btn">...</button>
+                <button class="page-btn">12</button>
+                <button class="page-btn">下一页</button>
+                <span class="page-info">共 128 条记录，第 1/12 页</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
